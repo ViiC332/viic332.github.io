@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Pedidos · Família Rodrigues</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css"></head>
+<body><div id="app"></div><div id="md" hidden></div><div id="tt" hidden></div>
+<script src="nucleo.js"></script>
+<script>
+function desc(r){
+ if(r.tipo=='editar'){const t=byId(r.alvo),q=r.q,m=[];if(!t)return`<b>${nm(r.por)}</b> pediu uma alteração (pessoa removida).`;if(q.n!=t.n)m.push('nome: '+esc(q.n));if(q.d!=t.d)m.push('nascimento: '+fd(q.d));if((q.fs||'n')!=(t.fs||(t.ob?'s':'n'))||(q.ob||null)!=(t.ob||null))m.push('falecido(a): '+fal(q));if((q.s!=t.s)||(q.go||null)!=(t.go||null))m.push('gênero');if((q.f||null)!=(t.f||null))m.push('foto');return`<b>${nm(r.por)}</b> pede para alterar os dados de <b>${esc(t.n)}</b>${m.length?': '+m.join('; '):'.'}`}
+ if(r.tipo=='remover')return`<b>${nm(r.por)}</b> pede para remover <b>${nm(r.alvo)}</b> da árvore.`;
+ if(r.tipo=='vinculo')return`<b>${nm(r.por)}</b> informa que <b>${nm(r.qid)}</b> é ${RL[r.rel]} dele(a).`;
+ return`<b>${nm(r.por)}</b> pede para incluir <b>${esc(r.q.n)}</b> (${fd(r.q.d)}) como ${RL[r.rel]} de <b>${nm(r.anchor)}</b>.`}
+function pedidos(){const f=byId(me).fund,L=R.filter(r=>f||r.por==me).slice().reverse();
+ return`<div class="pd"><h3>Pedidos</h3>${f?'':'<p class="mut sm">Só o fundador edita a árvore. Seus pedidos ficam aqui até ele analisar.</p>'}${L.length?L.map(r=>`<div class="rq"><span class="st ${r.st}">${r.st}</span><p>${desc(r)}</p>${f&&r.st=='pendente'?`<div class="bt"><button onclick="dec(${r.id},0)">Recusar</button><button class="pri" onclick="dec(${r.id},1)">Aprovar</button></div>`:''}</div>`).join(''):'<p class="mut">Nenhum pedido por aqui.</p>'}</div>`}
+function dec(id,ok){const r=R.find(x=>x.id==id);if(ok){const e=apply(r);if(e)return toast(e)}r.st=ok?'aprovado':'recusado';save();app()}
+function app(){$('#app').innerHTML=`<header id="hd">${cab('d')}</header>${pedidos()}`}
+if(guard())app();
+</script></body></html>

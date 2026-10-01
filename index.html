@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Família Rodrigues</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css"></head>
+<body><div id="app"></div><div id="md" hidden></div><div id="tt" hidden></div>
+<script src="nucleo.js"></script>
+<script>
+let SIM='',RC=null;
+/* Envio por WhatsApp: em produção, WA.api aponta para o SEU servidor, que guarda o token da API e envia a mensagem. Aqui, sem servidor, a mensagem só é simulada na tela. */
+async function zap(tel,msg){if(WA.api){try{return(await fetch(WA.api,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tel:'55'+tel,msg})})).ok}catch(e){return false}}SIM=msg;return true}
+const LAST='arvore-ultimo',lastId=()=>{try{return+localStorage.getItem(LAST)||0}catch(e){return 0}};
+function enter(id){try{localStorage.setItem(SES,id);localStorage.setItem(LAST,id)}catch(e){}nav('pessoas.html')}
+function cont(u){$('#app').innerHTML=`<main class="lg"><h1>Nossa Árvore</h1><p class="mut">Família ${FAM}</p><div class="cc">${av(u,96)}<b style="font-size:18px">${esc(u.n)}</b><button class="pri" style="width:100%" onclick="enter(${u.id})">Continuar como ${esc(first(u.n))}</button></div><button class="lk" onclick="forget()">Não sou eu / usar outra conta</button></main>`}
+function forget(){try{localStorage.removeItem(LAST)}catch(e){}login('in',1)}
+function forgot(){SIM='';$('#app').innerHTML=`<main class="lg"><h1>Recuperar senha</h1><p class="mut">Informe seu nascimento e o WhatsApp do cadastro. Enviamos um código para você criar uma nova senha.</p><label>Data de nascimento${dsel('fgd')}</label><label>WhatsApp com DDD<input id="fgt" type="tel" inputmode="numeric" placeholder="21999990000"></label><button class="pri" onclick="sendCode()">Enviar código</button><button class="lk" onclick="login('in',1)">Voltar</button></main>`}
+async function sendCode(){if(!WA.api&&!WA.simular)return toast('A recuperação por WhatsApp ainda não está ativa neste site. Fale com o fundador.');const d=dv('fgd'),t=$('#fgt').value.replace(/\D/g,'');if(!d||!t)return toast('Preencha o nascimento e o WhatsApp.');
+ const p=P.find(x=>x.pw&&x.d==d&&x.tel&&x.tel==t);RC=null;
+ if(p){RC={id:p.id,c:String(Math.floor(1e5+Math.random()*9e5)),t:Date.now()+6e5};await zap(t,`Nossa Árvore: seu código para criar uma nova senha é ${RC.c}. Vale por 10 minutos. Não compartilhe com ninguém.`)}
+ codeStep()}
+function codeStep(){$('#app').innerHTML=`<main class="lg"><h1>Digite o código</h1><p class="mut">Se os dados conferem, o código chegou no seu WhatsApp. Digite-o e escolha uma nova senha.</p>${SIM?`<div class="sim"><b>📱 Simulação do WhatsApp</b><br>${esc(SIM)}</div>`:''}<label>Código<input id="rc" inputmode="numeric" maxlength="6"></label><label>Nova senha<input id="rp" type="password"></label><button class="pri" onclick="resetPw()">Salvar nova senha</button><button class="lk" onclick="login('in',1)">Cancelar</button></main>`}
+function resetPw(){const pw=$('#rp').value;if(!RC||Date.now()>RC.t||$('#rc').value.trim()!=RC.c)return toast('Código inválido ou expirado.');
+ const p=byId(RC.id);if(pw.length<3)return toast('Escolha uma senha com pelo menos 3 caracteres.');
+ if(P.some(x=>x.id!=p.id&&x.d==p.d&&x.pw==pw))return toast('Escolha outra senha.');
+ p.pw=pw;save();RC=null;SIM='';login('in',1);toast('Senha alterada. Entre com a nova senha.')}
+// login
+function login(tab='in',o){ph=null;if(!P.length)return primeiro();const u=tab=='in'&&!o?byId(lastId()):null;if(u&&u.pw)return cont(u);
+ $('#app').innerHTML=`<main class="lg"><h1>Nossa Árvore</h1><p class="mut">A família inteira num só lugar.</p>
+ <div class="tabs"><button class="${tab=='in'?'on':''}" onclick="login('in',1)">Entrar</button><button class="${tab=='new'?'on':''}" onclick="login('new')">Criar conta</button></div>
+ ${tab=='in'?`<label>Data de nascimento${dsel('ld')}</label><label>Senha<input id="pw" type="password"></label><button class="pri" onclick="doIn()">Entrar</button><button class="lk" onclick="forgot()">Esqueci minha senha</button>`:`<label>Nome completo<input id="nn"></label><label>Data de nascimento${dsel('nd')}</label>${gsel({},'ns')}<label>WhatsApp com DDD <span class="sm">(para recuperar a senha)</span><input id="tel" type="tel" inputmode="numeric" placeholder="21999990000"></label><label>Foto (opcional)<input id="pf" type="file" accept="image/*" onchange="pick(event)"></label><p class="tip sm">💡 Seria ótimo colocar uma foto: assim, quem não conhece você pelo nome reconhece pelo rosto.</p><label>Senha<input id="pw" type="password"></label><button class="pri" onclick="doNew()">Criar conta</button>`}
+ <p class="mut sm">Se um parente já cadastrou você, o nome e a data de nascimento ligam sua conta a esse cadastro.</p></main>`}
+function doIn(){const d=dv('ld'),pw=$('#pw').value,p=P.find(x=>x.pw&&x.d==d&&x.pw==pw);if(!p)return toast('Data de nascimento ou senha incorretas. Se precisar, use Esqueci minha senha.');enter(p.id)}
+function doNew(){const n=$('#nn').value.trim(),d=dv('nd'),{s,go}=gv('ns'),tel=$('#tel').value.replace(/\D/g,''),pw=$('#pw').value;
+ if(!n||!d||!pw)return toast('Preencha nome, nascimento e senha.');
+ if(s=='O'&&!go)return toast('Informe o gênero.');
+ let nw=0;const e=P.find(x=>norm(x.n)==norm(n)&&x.d==d);
+ if(P.some(x=>x.pw==pw&&x.d==d&&x!==e))return toast('Essa combinação de nascimento e senha já está em uso. Escolha outra senha.');
+ if(e){if(e.pw)return toast('Já existe uma conta com esse nome e nascimento. Use Entrar.');e.pw=pw;e.tel=tel||e.tel;e.s=s;e.go=go;if(ph&&!e.f)e.f=ph;me=e.id;toast('Encontramos seu cadastro na árvore.')}
+ else{const p={id:nid(),n,d,s,go,pw,tel,f:ph||undefined};P.push(p);me=p.id;nw=1}
+ save();nw?recog():enter(me)}
+// árvore
+function recog(){
+ $('#app').innerHTML=`<main class="lg"><h1>Você conhece essas pessoas?</h1><p class="mut">Diga o que cada uma é para você. O fundador vai analisar e ligar você à árvore.</p>${P.filter(p=>p.id!=me).map(p=>`<div class="rc">${av(p,56)}<div><b>${esc(p.n)}</b><select data-id="${p.id}"><option value="">Não conheço / pular</option><option value="mae">É minha mãe</option><option value="pai">É meu pai</option><option value="fi">É meu filho(a)</option><option value="ir">É meu irmão(ã)</option><option value="cj">É meu cônjuge</option></select></div></div>`).join('')}<button class="pri" onclick="sendRec()">Enviar e entrar</button><button class="lk" onclick="enter(me)">Pular</button></main>`}
+function sendRec(){document.querySelectorAll('select[data-id]').forEach(e=>{if(e.value)R.push({id:rid(),st:'pendente',tipo:'vinculo',por:me,anchor:me,rel:e.value,qid:+e.dataset.id})});save();toast('Pedidos enviados ao fundador.');enter(me)}
+{let ses=0;try{ses=+localStorage.getItem(SES)||0}catch(e){}if(byId(ses))enter(ses);else login()}
+
+function primeiro(){ph=null;$('#app').innerHTML=`<main class="lg"><h1>Primeiro acesso</h1><p class="mut">Cadastre o fundador da árvore da Família ${FAM}.</p><label>Nome completo<input id="pn" value="Vitor Rodrigues Alves"></label><label>Data de nascimento${dsel('pd')}</label>${gsel({s:'M'},'pg')}<label>WhatsApp com DDD <span class="sm">(para recuperar a senha)</span><input id="pt" type="tel" inputmode="numeric"></label><label>Foto (opcional)<input type="file" accept="image/*" onchange="pick(event)"></label><label>Senha<input id="pw1" type="password"></label><label>Repita a senha<input id="pw2" type="password"></label><button class="pri" onclick="criaFundador()">Criar e entrar</button></main>`}
+function criaFundador(){const n=$('#pn').value.trim(),d=dv('pd'),{s,go}=gv('pg'),tel=$('#pt').value.replace(/\D/g,''),pw=$('#pw1').value;
+ if(!n||!d||!pw)return toast('Preencha nome, nascimento e senha.');if(s=='O'&&!go)return toast('Informe o gênero.');if(pw!==$('#pw2').value)return toast('As senhas não são iguais.');
+ P.push({id:1,n,d,s,go,tel,pw,f:ph||undefined,fund:true});save();enter(1)}
+{let ses=0;try{ses=+localStorage.getItem(SES)||0}catch(e){}if(byId(ses))enter(ses);else login()}
+</script></body></html>

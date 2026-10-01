@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Árvore · Família Rodrigues</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css"></head>
+<body><div id="app"></div><div id="md" hidden></div><div id="tt" hidden></div>
+<script src="nucleo.js"></script>
+<script>
+function askRm(id){R.push({id:rid(),st:'pendente',tipo:'remover',por:me,alvo:id});save();pcx();$('#hd').innerHTML=cab('p');draw();toast('Pedido de remoção enviado ao fundador.')}
+function rmAsk(id){modal(`<h3>Remover ${esc(first(byId(id).n))}?</h3><p class="mut">A pessoa sai da árvore e as ligações com ela são desfeitas.</p><div class="bt"><button onclick="closeM()">Cancelar</button><button class="pri" onclick="rmDo(${id})">Remover</button></div>`)}
+function rmDo(id){const e=apply({tipo:'remover',alvo:id});if(e)return toast(e);save();closeM();pcx();draw()}
+function abrirForm(id,A){const p=id?byId(id):{};ph=p.f||null;const st=p.fs||(p.ob?'s':'n');
+ modal(`<h3>${id?(byId(me).fund?'Editar':'Pedir alteração'):(byId(me).fund?'Incluir parente':'Pedir inclusão')}</h3>
+ ${id?'':`<label>O que essa pessoa é para ${A==me?'você':esc(first(byId(A).n))}?<select id="fr" data-a="${A}" onchange="viaUI()"><option value="mae">Mãe</option><option value="pai">Pai</option><option value="fi">Filho(a)</option><option value="ir">Irmão(ã)</option><option value="cj">Cônjuge</option><option value="avo">Avô / Avó</option><option value="tio">Tio / Tia</option><option value="sob">Sobrinho(a)</option><option value="pri">Primo(a)</option><option value="net">Neto(a)</option></select></label><label id="fvl" hidden><span id="fvt"></span><select id="fv"></select></label>`}
+ <label>Nome completo<input id="fn" value="${esc(p.n||'')}"></label>
+ <label>Data de nascimento${dsel('fdn',p.d)}</label>
+ ${gsel(p,'fs')}
+ <label>Falecido(a)?<select id="fsd" onchange="$('#fob').hidden=this.value!='s'"><option value="n" ${st=='n'?'selected':''}>Não</option><option value="s" ${st=='s'?'selected':''}>Sim</option><option value="?" ${st=='?'?'selected':''}>Não sei</option></select></label>
+ <div id="fob" ${st=='s'?'':'hidden'}><label>Data do falecimento${dsel('fdo',p.ob)}</label><label class="ck"><input id="fnd" type="checkbox" ${st=='s'&&!p.ob?'checked':''}> Não sei a data</label></div>
+ <label>Foto<input id="ff" type="file" accept="image/*" onchange="pick(event)"></label>
+ <div class="bt"><button onclick="closeM()">Cancelar</button><button class="pri" onclick="saveP(${id},${A||0})">${byId(me).fund?'Salvar':'Enviar pedido'}</button></div>`)}
+function saveP(id,A){
+ const n=$('#fn').value.trim(),d=dv('fdn'),{s,go}=gv('fs'),fs=$("#fsd").value,ob=fs=='s'?dv('fdo'):'';
+ if(!n||!d)return toast('Preencha o nome e a data de nascimento completa.');
+ if(s=='O'&&!go)return toast('Informe o gênero.');
+ if(fs=='s'&&!$('#fnd').checked&&!ob)return toast('Informe a data do falecimento ou marque "Não sei a data".');
+ if(id){const q={n,d,s,go,fs,ob:ob||null,f:ph||null};if(byId(me).fund){Object.assign(byId(id),q);save();closeM();pcx();return draw()}R.push({id:rid(),st:'pendente',tipo:'editar',por:me,alvo:id,q});save();closeM();pcx();$('#hd').innerHTML=cab('p');draw();return toast('Pedido de alteração enviado ao fundador.')}
+ const x={tipo:'incluir',por:me,anchor:A,rel:$('#fr').value,via:($('#fv')||{}).value,q:{n,d,s,go,fs,ob:ob||null,f:ph||null}};
+ if(byId(me).fund){const e=apply(x);if(e)return toast(e);save();toast('Parente adicionado.');closeM();pcx();draw()}
+ else{R.push({id:rid(),st:'pendente',...x});save();closeM();pcx();$('#hd').innerHTML=cab('p');draw();toast('Pedido enviado ao fundador para análise.')}}
+let Z={s:1,fit:1,user:0},VB={W:380,H:400};
+const aplicaZoom=()=>{const v=$('#sv');v.style.width=VB.W*Z.s+'px';v.style.height=VB.H*Z.s+'px'};
+function ajusta(){Z.fit=$('#wr').clientWidth/VB.W;Z.s=Math.min(1.3,Math.max(Z.fit,.55));Z.user=0;aplicaZoom()}
+function zoom(f){Z.s=Math.min(2.2,Math.max(.35,Z.s*f));Z.user=1;aplicaZoom()}
+function vertudo(){Z.s=Z.fit;Z.user=1;aplicaZoom()}
+addEventListener('resize',()=>{if($('#wr')&&!Z.user)ajusta()});
+function foco(id){const S=new Set(),f=$('#foco');
+ if(id){up(id).forEach((_,i)=>S.add(i));const dn=i=>P.forEach(z=>{if((z.pai==i||z.mae==i)&&!S.has(z.id)){S.add(z.id);dn(z.id)}});dn(id);[...S].forEach(i=>{const c=byId(i).cj;if(c)S.add(c)})}
+ const q=(s,fn)=>document.querySelectorAll('#sv '+s).forEach(e=>e.classList.toggle('dim',!!id&&fn(e.dataset)));
+ q('.n',d=>!S.has(+d.id));q('.cp',d=>!S.has(+d.p));q('.lf',d=>!S.has(+d.p));q('.br',d=>!((+d.a<0||S.has(+d.a))&&S.has(+d.b)));q('.sp',d=>!(S.has(+d.a)&&S.has(+d.b)));
+ document.querySelectorAll('#sv .n').forEach(e=>e.classList.toggle('sel',!!id&&e.dataset.id==id));
+ f.hidden=!id;if(id)f.innerHTML=`Linhagem de <b>${esc(first(byId(id).n))}</b><button onclick="pcx()" aria-label="Limpar seleção">×</button>`}
+function pcx(){const e=$('#pc');if(e)e.remove();foco(0)}
+function show(id){pcx();foco(id);const p=byId(id),m=byId(me),r=rel(m,p),gr=grau(m,p),f=m.fund,n=t=>`<p class="sm mut" style="margin:0">${t}</p>`;
+ const why=gr?`<details class="dt2"><summary>Por que ${gr.g}º grau?</summary>${gr.h}</details>`:r=='Você'?n('Este é o seu cartão.'):r=='Parente'?n('Ainda não há ligação cadastrada entre vocês. Se vocês se conhecem, peça a inclusão ao fundador.'):n('Ligação por casamento: não é parentesco de sangue, então não tem grau.');
+ const c=document.createElement('div');c.id='pc';c.className='pc';
+ c.innerHTML=`<button class="x" onclick="pcx()" aria-label="Fechar">×</button><div class="ph">${av(p,56)}<div><b>${esc(p.n)}</b>${p.fund?' <span class="gold">★ Fundador</span>':''}<div class="gr">${esc(r)}${gr?` · ${gr.g}º grau`:''}</div></div></div>${why}<dl class="sm"><dt>Nascimento</dt><dd>${fd(p.d)}</dd><dt>${p.s=='F'?'Falecida?':p.s=='M'?'Falecido?':'Falecido(a)?'}</dt><dd>${fal(p)}</dd></dl>${pend(id).length?`<div class="pend">⚠ Há alterações pendentes (${pend(id).length}) <button onclick="nav('pedidos.html')">Ver pedidos</button></div>`:''}<div class="bt w">${f?`<button onclick="abrirForm(${id})">Editar</button><button onclick="abrirForm(0,${id})">Incluir parente</button>${p.fund?'':`<button onclick="rmAsk(${id})">Remover</button>`}`:`<button onclick="abrirForm(0,${id})">Pedir inclusão</button><button onclick="abrirForm(${id})">Pedir alteração</button>${p.fund?'':`<button onclick="askRm(${id})">Pedir remoção</button>`}`}</div>`;
+ document.body.appendChild(c);setTimeout(centra,30)}
+function centra(again){const w=$('#wr'),pc=$('#pc'),L=[...document.querySelectorAll('#sv .n:not(.dim)')];if(!pc||!L.length)return;let x1=1e9,x2=-1e9,y1=1e9,y2=-1e9;L.forEach(e=>{const r=e.getBoundingClientRect();x1=Math.min(x1,r.left);x2=Math.max(x2,r.right);y1=Math.min(y1,r.top);y2=Math.max(y2,r.bottom)});const wr=w.getBoundingClientRect(),bt=Math.min(wr.bottom,pc.getBoundingClientRect().top)-8,av=bt-wr.top-70;if(!again&&y2-y1>av&&Z.s>.4){zoom(Math.max(.4,av/(y2-y1)));return setTimeout(()=>centra(1),60)}w.scrollBy({left:(x1+x2)/2-(wr.left+wr.right)/2,top:(y1+y2)/2-(wr.top+bt)/2,behavior:'smooth'})}
+function viaUI(){const r=$('#fr').value,v=vias(r,+$('#fr').dataset.a),l=$('#fvl');l.hidden=!v;if(!v)return;$('#fvt').textContent={avo:'Avô/avó por qual lado?',tio:'Tio/tia por qual lado?',sob:'Filho(a) de qual irmão(ã)?',pri:'Filho(a) de qual tio(a)?',net:'Filho(a) de qual filho(a)?'}[r];$('#fv').innerHTML=v.length?v.map(o=>`<option value="${o.v}">${esc(o.t)}</option>`).join(''):'<option value="">Nenhuma opção cadastrada ainda</option>'}
+function app(){draw.done=0;$('#app').innerHTML=`<header id="hd">${cab('p')}</header><div id="tv"><div id="wr"><svg id="sv"></svg></div><div class="zm"><button onclick="zoom(1.25)" aria-label="Aproximar">+</button><button onclick="zoom(.8)" aria-label="Afastar">−</button><button onclick="vertudo()" aria-label="Ver tudo">⤢</button></div><div id="foco" hidden></div></div>`;draw()}
+function draw(){
+ const pos={},pl=new Set(),gen={};let nx=0;
+ const hp=p=>p.pai||p.mae;
+ const g=p=>{if(p.id in gen)return gen[p.id];gen[p.id]=0;let v=0;const ps=[p.pai,p.mae].filter(Boolean).map(byId);if(ps.length)v=Math.max(...ps.map(g))+1;else if(p.cj){const s=byId(p.cj);if(hp(s))v=g(s)}return gen[p.id]=v};
+ P.forEach(g);
+ const unit=p=>{if(pl.has(p.id))return;const s=p.cj&&byId(p.cj),ms=[p];if(s&&!hp(s)&&!pl.has(s.id))ms.push(s);ms.forEach(m=>pl.add(m.id));
+  const ch=P.filter(c=>!pl.has(c.id)&&ms.some(m=>m.id==c.pai||m.id==c.mae)).sort((a,b)=>a.d<b.d?-1:1);
+  ch.forEach(unit);
+  const xs=ch.map(c=>pos[c.id]).filter(v=>v!=null);
+  if(xs.length){const cx=(Math.min(...xs)+Math.max(...xs))/2;ms.forEach((m,i)=>pos[m.id]=cx+(i-(ms.length-1)/2))}
+  else ms.forEach(m=>pos[m.id]=nx++)};
+ P.filter(p=>!hp(p)&&!(p.cj&&hp(byId(p.cj)))).forEach(unit);P.forEach(unit);
+ const rows={};P.forEach(p=>(rows[gen[p.id]]=rows[gen[p.id]]||[]).push(p));
+ const sweep=()=>Object.values(rows).forEach(r=>{r.sort((a,b)=>pos[a.id]-pos[b.id]);r.forEach((p,i)=>{if(i&&pos[p.id]<pos[r[i-1].id]+1)pos[p.id]=pos[r[i-1].id]+1})});
+ sweep();for(let k=0;k<2;k++){P.forEach(p=>{const c=P.filter(z=>z.pai==p.id||z.mae==p.id).map(z=>pos[z.id]);if(c.length)pos[p.id]=(Math.min(...c)+Math.max(...c))/2});sweep()}
+ const dc={},D=id=>{if(id in dc)return dc[id];dc[id]=0;let n=0;P.forEach(z=>{if(z.pai==id||z.mae==id)n+=1+D(z.id)});return dc[id]=n};P.forEach(p=>D(p.id));
+ const nomes=P.map(p=>partes(p.n)),lw=Math.max(...nomes.map(a=>Math.max(...a.map(w=>w.length)))),ml=Math.max(...nomes.map(a=>a.length));
+ const SX=Math.max(132,Math.ceil(lw*8.6+34)),SY=Math.max(175,47+ml*16+10+40+28),mg=Math.max(...P.map(p=>gen[p.id])),mx=Math.max(...Object.values(pos)),W=Math.max(380,(mx+1)*SX+110),H=(mg+1)*SY+200,X=p=>70+pos[p.id]*SX,Y=p=>H-160-gen[p.id]*SY,
+  rnd=i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)},bw=c=>Math.min(30,7+3.6*Math.sqrt(dc[c.id])),roots=P.filter(p=>!hp(p)&&gen[p.id]==0),LF={},addL=(i,t)=>LF[i]=(LF[i]||'')+t;
+ const leaf=(x,y,k)=>`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${9+rnd(k)*4}" ry="${4.2+rnd(k+1)*1.5}" transform="rotate(${Math.round(rnd(k+2)*180-90)} ${x.toFixed(1)} ${y.toFixed(1)})" fill="var(${rnd(k+3)>.5?'--leaf':'--leaf2'})" opacity="${(.55+rnd(k+4)*.4).toFixed(2)}"/>`;
+ const br=(a,b,x1,y1,x2,y2,w)=>{const my=(y1+y2)/2,d=`M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}`;return`<g class="br" data-a="${a}" data-b="${b}"><path d="${d}" fill="none" stroke="var(--bark)" stroke-width="${w}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="var(--bark2)" stroke-width="${Math.max(1.5,w*.28)}" stroke-linecap="round" opacity=".45" transform="translate(${-w*.18} 0)"/></g>`};
+ let s=`<defs><radialGradient id="cg"><stop offset="0" style="stop-color:var(--leaf);stop-opacity:.72"/><stop offset="1" style="stop-color:var(--leaf);stop-opacity:0"/></radialGradient><filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".3"/></filter></defs>`;
+ s+=`<ellipse cx="${W/2}" cy="${H+20}" rx="${W*.7}" ry="110" fill="var(--leaf)" opacity=".25"/><ellipse cx="${W/2}" cy="${H+55}" rx="${W*.6}" ry="100" fill="var(--leaf2)" opacity=".3"/>`;
+ P.forEach(p=>s+=`<circle class="cp" data-p="${p.id}" cx="${X(p)}" cy="${Y(p)}" r="118" fill="url(#cg)"/>`);
+ const tw=Math.min(56,30+6*Math.sqrt(roots.reduce((a,r)=>a+dc[r.id]+1,0))),ty=H-110,cx0=W/2;
+ s+=`<path d="M${cx0-tw*.5} ${H-14} Q${cx0-tw*1.3} ${H-6} ${cx0-tw*1.9} ${H+8}M${cx0+tw*.5} ${H-14} Q${cx0+tw*1.3} ${H-6} ${cx0+tw*1.9} ${H+8}" fill="none" stroke="var(--bark)" stroke-width="${tw*.36}" stroke-linecap="round"/>`;
+ s+=`<path d="M${cx0} ${H+12} L${cx0} ${ty}" stroke="var(--bark)" stroke-width="${tw}" stroke-linecap="round"/><path d="M${cx0-tw*.22} ${H+8} L${cx0-tw*.22} ${ty}" stroke="var(--bark2)" stroke-width="${tw*.18}" opacity=".5"/><path d="M${cx0+tw*.12} ${H+8} L${cx0+tw*.12} ${ty}" stroke="#000" stroke-width="3" stroke-dasharray="14 24" opacity=".22"/>`;
+ roots.forEach(r=>s+=br(-1,r.id,cx0,ty,X(r),Y(r),Math.min(tw,bw(r)+8)));
+ P.forEach(c=>[c.pai,c.mae].filter(Boolean).map(byId).forEach((p,j)=>{const x1=X(p),y1=Y(p),x2=X(c),y2=Y(c),my=(y1+y2)/2,w=bw(c);s+=br(p.id,c.id,x1,y1,x2,y2,w);
+  for(let k=1;k<=4;k++){const t=.18+k*.17,u=1-t,x=x1+(x2-x1)*(3*t*t-2*t*t*t),y=y1*u*u*u+3*my*t*u*u+3*my*t*t*u+y2*t*t*t,sd=(k%2?1:-1)*(w/2+5);addL(c.id,leaf(x+sd,y,c.id*13+k*7+j))}}));
+ P.forEach(p=>{for(let k=0;k<9;k++){const a=rnd(p.id*31+k)*6.283,r=52+rnd(p.id*17+k)*38;addL(p.id,leaf(X(p)+Math.cos(a)*r,Y(p)+Math.sin(a)*r*.8,p.id*19+k*5))}});
+ Object.keys(LF).forEach(i=>s+=`<g class="lf" data-p="${i}">${LF[i]}</g>`);
+ P.forEach(p=>{if(p.cj&&p.id<p.cj){const q=byId(p.cj),x1=X(p),y1=Y(p),x2=X(q),y2=Y(q);s+=`<g class="sp" data-a="${p.id}" data-b="${q.id}"><path d="M${x1} ${y1} L${x2} ${y2}" stroke="var(--gold)" stroke-width="3" stroke-dasharray="1 8" stroke-linecap="round"/><text x="${(x1+x2)/2}" y="${(y1+y2)/2+5}" text-anchor="middle" font-size="16" fill="var(--gold)">♥</text></g>`}});
+ P.forEach(p=>{const eu=p.id==me,col=eu?'var(--gold)':morto(p)?'var(--mut)':'var(--leaf)',a=partes(p.n),wd=Math.max(...a.map(w=>w.length))*8.6+22;
+  s+=`<g class="n${morto(p)?' morto':''}" data-id="${p.id}" tabindex="0" role="button" aria-label="${esc(p.n)}" transform="translate(${X(p)},${Y(p)})"><circle r="40" fill="var(--card)" stroke="${col}" stroke-width="${eu?6:4}"${morto(p)?' stroke-dasharray="7 5"':''} filter="url(#sh)"/><clipPath id="c${p.id}"><circle r="36"/></clipPath>${p.f?`<image href="${p.f}" x="-36" y="-36" width="72" height="72" clip-path="url(#c${p.id})" preserveAspectRatio="xMidYMid slice"/>`:`<text class="in" y="11" text-anchor="middle">${esc(p.n[0])}</text>`}<rect x="${-wd/2}" y="47" width="${wd}" height="${a.length*16+10}" rx="12" fill="var(--card)" stroke="var(--ln)"/><text class="nm" text-anchor="middle">${a.map((w,i)=>`<tspan x="0" y="${62+i*16}">${esc(w)}</tspan>`).join('')}</text>${p.fund?'<g transform="translate(29,-29)"><circle r="13" fill="var(--gold)"/><text y="5" text-anchor="middle" font-size="15" fill="#fff">★</text></g>':''}${morto(p)?'<g transform="translate(-29,-29)"><circle r="12" fill="var(--mut)"/><text y="5" text-anchor="middle" font-size="14" fill="#fff">✝</text></g>':''}${pend(p.id).length?'<g transform="translate(-29,29)"><circle r="11" fill="#d9622b"/><text y="5" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">!</text></g>':''}</g>`});
+ VB={W,H};const sv=$('#sv');sv.style.cssText='display:block;margin:0 auto';sv.setAttribute('viewBox',`0 0 ${W} ${H}`);sv.innerHTML=s;
+ sv.onclick=e=>{const n=e.target.closest('.n');if(n)show(+n.dataset.id);else pcx()};
+ sv.onkeydown=e=>{if(e.key=='Enter'){const n=e.target.closest('.n');if(n)show(+n.dataset.id)}};
+ if(!draw.done){ajusta();const e=document.querySelector('.n[data-id="'+me+'"]');if(e)e.scrollIntoView({block:'center',inline:'center'});draw.done=1}else aplicaZoom()}
+if(guard())app();
+</script></body></html>
